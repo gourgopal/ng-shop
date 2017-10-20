@@ -1,0 +1,764 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+}
+
+<md-content>
+    <md-tabs md-dynamic-height md-border-bottom style="height:100%">
+        <md-tab label="Sign-in/Register">
+            <div style="height:100%;overflow-y:auto;" ng-include src="'Users.html'"></div>
+        </md-tab>
+        <md-tab label="Cart">
+            <div style="height:100%;overflow-y:auto;" ng-include src="'Cart.html'"></div>
+        </md-tab>
+        <md-tab label="Items">
+            <div style="height:100%;overflow-y:auto;" ng-include src="'Items.html'"></div>
+        </md-tab>
+        <md-tab ng-if="UserKey" label="{{UserSigned}}">
+            <div style="height:100%;overflow-y:auto;" ng-include src="'Dashboard.html'"></div>
+        </md-tab>
+    </md-tabs>
+</md-content>
+<script type="text/javascript">
+    angular.module('BlankApp', ['ngMaterial', 'ngMessages']).controller('Users', function ($scope, $mdDialog, $http) {
+        $scope.user = {};
+        $scope.CheckEmail = function (form) {
+            $http({
+                method: 'POST',
+                url: '/api/CheckEmail/',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    user_key: null,
+                    name: $scope.user.name,
+                    type: 'u',
+                    email: $scope.user.email,
+                    dob: $scope.user.birthdate,
+                    password: $scope.user.password1
+                }
+            }).then(function successCallback(response) {
+                form.uemail.$error.exists = response.data;
+                angular.element(form.uemail).removeClass("ng-invalid");
+                if (response.data === true) {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .parent(angular.element(document.querySelector('#popupContainer')))
+                            .clickOutsideToClose(true)
+                            .title('Email already exists')
+                            .textContent('Please sign in with your username')
+                            .ariaLabel('Alert Dialog Registration')
+                            .ok('oops!')
+                    );
+                    console.log("email exists!");
+                }
+                else {
+                    //do nothing
+                }
+            }, function errorCallback(response) {
+                console.log(response.data + " failed to check email id. HTTP Response Code: " + response.status);
+            });
+        }
+        $scope.RegisterUser = function (form) {
+            if (!form.$valid)
+                return;
+            $http({
+                method: 'POST',
+                url: '/api/InsertUser/',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    user_key: null,
+                    name: $scope.user.name,
+                    type: 'u',
+                    email: $scope.user.email,
+                    dob: $scope.user.birthdate,
+                    password: $scope.user.password1
+                }
+            }).then(function successCallback(response) {
+                $scope.UserSigned = $scope.user.name;
+                $scope.UserKey = response.data;
+                $scope.GetBooksInCart();
+                //$scope.user.name = null;
+                //$scope.user.email = null;
+                //$scope.user.birthdate = null;
+                //$scope.user.password1 = null;
+                //$scope.user.password2 = null;
+                //angular.copy({}, form);
+                $scope.showAlert(response);
+                console.log("registration success!");
+            }, function errorCallback(response) {
+                console.log(response.data + " registration failed. HTTP Response Code: " + response.status);
+            });
+        };
+        $scope.CheckUsername = function (form) {
+            $http({
+                method: 'POST',
+                url: '/api/CheckUsername/',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    user_key: null,
+                    name: $scope.user.name,
+                    type: 'u',
+                    email: $scope.user.email,
+                    dob: $scope.user.birthdate,
+                    password: $scope.user.password1
+                }
+            }).then(function successCallback(response) {
+                form.uname.$error.exists = response.data;
+                angular.element(form.uname).removeClass("ng-invalid");
+                if (response.data === true) {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .parent(angular.element(document.querySelector('#popupContainer')))
+                            .clickOutsideToClose(true)
+                            .title('Username already exists')
+                            .textContent('Please sign in with your username')
+                            .ariaLabel('Alert Dialog Registration')
+                            .ok('oops!')
+                    );
+                    console.log("email exists!");
+                }
+                else {
+                    //do nothing
+                }
+            }, function errorCallback(response) {
+                console.log(response.data + " failed to check email id. HTTP Response Code: " + response.status);
+            });
+        }
+        $scope.AddToCart = function (book_key) {
+            $http({
+                method: 'POST',
+                url: '/api/AddToCart',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    cart_key: 0,
+                    user_key: parseInt($scope.UserKey),
+                    book_key: parseInt(book_key),
+                    quantity: parseInt(1)
+                }
+            }).then(function successCallback(response) {
+                $scope.GetBooksInCart();
+                $mdDialog.show(
+                    $mdDialog.alert()
+                        .parent(angular.element(document.querySelector('#popupContainer')))
+                        .clickOutsideToClose(true)
+                        .title('Item added to cart')
+                        .textContent('You can go to cart to buy the item')
+                        .ariaLabel('Alert Dialog signin')
+                        .ok('wow!')
+                );
+            }, function errorCallback(response) {
+                $mdDialog.show(
+                    $mdDialog.alert()
+                        .parent(angular.element(document.querySelector('#popupContainer')))
+                        .clickOutsideToClose(true)
+                        .title('Can\'t add item to cart')
+                        .textContent('Please register or sign in to add items to cart')
+                        .ariaLabel('Alert Dialog cart add')
+                        .ok('oops!')
+                );
+            });
+        };
+        $scope.SignIn = function (form) {
+            if (!form.$valid)
+                return;
+            $http({
+                method: 'POST',
+                url: '/api/SignInUser/',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    user_key: null,
+                    name: $scope.user.name,
+                    type: 'u',
+                    email: $scope.user.email,
+                    dob: $scope.user.birthdate,
+                    password: $scope.user.password1
+                }
+            }).then(function successCallback(response) {
+                $scope.UserKey = response.data;
+                $scope.UserSigned = $scope.user.name;
+                $scope.GetBooksInCart();
+                if (response.data > 0) {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .parent(angular.element(document.querySelector('#popupContainer')))
+                            .clickOutsideToClose(true)
+                            .title('Sign in successful!')
+                            .textContent('Welcome to Shopping!\nNow visit Items section, add items to cart - buy them')
+                            .ariaLabel('Alert Dialog signin')
+                            .ok('Awesome!')
+                    );
+                }
+                else {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .parent(angular.element(document.querySelector('#popupContainer')))
+                            .clickOutsideToClose(true)
+                            .title('Username or password doesn\'t match!')
+                            .textContent('Please register or enter proper username or password')
+                            .ariaLabel('Alert Dialog signin')
+                            .ok('oops!')
+                    );
+                }
+            }, function errorCallback(response) {
+                console.log(response.data + " failed to sign in. HTTP Response Code: " + response.status);
+            });
+        };
+        $scope.GetBooks = function () {
+            $http({
+                method: 'GET',
+                url: '/api/GetBooks',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(function successCallback(response) {
+                $scope.books = response.data;
+                console.log("loaded books");
+                }, function errorCallback(response) {
+                    console.log("failed to load books");
+                });
+        };
+        $scope.GetBooks();
+        $scope.GetBooksInCart = function () {
+            $http({
+                method: 'POST',
+                url: '/api/GetBooksInCart',
+                headers: { 'Content-Type': 'application/json' },
+                data: {
+                    user_key: $scope.UserKey,
+                    name: $scope.user.name,
+                    type: 'u',
+                    email: $scope.user.email,
+                    dob: $scope.user.birthdate,
+                    password: $scope.user.password1
+                }
+            }).then(function successCallback(response) {
+                $scope.booksInCart = response.data;
+                console.log("loaded books in cart");
+            }, function errorCallback(response) {
+                console.log("failed to load books in cart");
+            });
+        };
+        $scope.BuyBooks = function (book_key, quantity, name, author) {
+            $mdDialog.show(
+                $mdDialog.alert()
+                    .clickOutsideToClose(true)
+                    .title('Congratulations, you purchased ' + quantity + ' books!')
+                    .textContent('Thank you for purchasing ' + name + ' by ' + author)
+                    .ariaLabel('Offscreen')
+                    .ok('Amazing!')
+                    // Or you can specify the rect to do the transition from
+                    .openFrom({
+                        top: -50,
+                        width: 30,
+                        height: 80
+                    })
+                    .closeTo({
+                        left: 1500
+                    })
+            );
+            $http({
+                method: 'POST',
+                url: '/api/BuyBooks',
+                headers: { 'Content-Type': 'application/json' },
+                data: {
+                    user_key: $scope.UserKey,
+                    book_key: book_key,
+                    quantity: quantity
+                }
+            }).then(function successCallback(response) {
+                $scope.GetBooksInCart();
+                $scope.GetBooks();
+                console.log("bought books from cart");
+            }, function errorCallback(response) {
+                console.log("failed to buy books from cart");
+            });
+        };
+        $scope.DeleteFromCart = function (book_key) {
+            $http({
+                method: 'POST',
+                url: '/api/DeleteFromCart',
+                headers: { 'Content-Type': 'application/json' },
+                data: {
+                    user_key: $scope.UserKey,
+                    book_key: book_key
+                }
+            }).then(function successCallback(response) {
+                $scope.GetBooksInCart();
+                console.log("deleted books from cart");
+            }, function errorCallback(response) {
+                console.log("failed to delete books from cart");
+            });
+        };
+        $scope.GetUserType = function () {
+            if (!$scope.UserKey) {
+                $mdDialog.show(
+                    $mdDialog.alert()
+                        .clickOutsideToClose(true)
+                        .title('Welcome Guest user!')
+                        .textContent('Please sign in or register')
+                        .ariaLabel('Offscreen')
+                        .ok('okay!')
+                        // Or you can specify the rect to do the transition from
+                        .openFrom({
+                            top: -50,
+                            width: 30,
+                            height: 80
+                        })
+                        .closeTo({
+                            left: 1500
+                        })
+                );
+                return;
+            }
+            $http({
+                method: 'GET',
+                url: '/api/GetUserType/' + $scope.UserKey,
+                headers: { 'Content-Type': 'application/json' },
+            }).then(function successCallback(response) {
+                $scope.UserType = response.data;
+                if ($scope.UserType === 'u') {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .clickOutsideToClose(true)
+                            .title('Welcome ' + $scope.UserSigned)
+                            .textContent('We are thank ful you are here!')
+                            .ariaLabel('Offscreen')
+                            .ok('Wow')
+                            // Or you can specify the rect to do the transition from
+                            .openFrom({
+                                top: -50,
+                                width: 30,
+                                height: 80
+                            })
+                            .closeTo({
+                                left: 1500
+                            })
+                    );
+                }
+                else if ($scope.UserType === 'a') {
+                    $mdDialog.show(
+                        $mdDialog.alert()
+                            .clickOutsideToClose(true)
+                            .title('Welcome Admin' + $scope.UserSigned)
+                            .textContent('Let\'s get to work')
+                            .ariaLabel('Offscreen')
+                            .ok('Awesome')
+                            // Or you can specify the rect to do the transition from
+                            .openFrom({
+                                top: -50,
+                                width: 30,
+                                height: 80
+                            })
+                            .closeTo({
+                                left: 1500
+                            })
+                    );
+                }
+            }, function errorCallback(response) {
+                console.log("failed to delete books from cart");
+            });
+        };
+        var today = new Date();
+        $scope.maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        $scope.minDate = new Date(today.getFullYear() - 150, today.getMonth(), today.getDate());
+        //$scope.items = [{ id: 1, name: 'book1' }, { id: 2, name: 'book2' }, { id: 3, name: 'book3' }, { id: 4, name: 'book4' }, { id: 5, name: 'book5' }, { id: 6, name: 'book6' }, { id: 7, name: 'book7' },];
+        $scope.showTabDialog = function (ev) {
+
+            $mdDialog.show({
+                controller: DialogController,
+                templateUrl: 'temp.forgot.html',
+                parent: angular.element(document.body),
+                targetEvent: ev,
+                clickOutsideToClose: true
+            })
+                .then(function (answer) {
+                    $scope.status = 'You said the information was "' + answer + '".';
+                }, function () {
+                    $scope.status = 'You cancelled the dialog.';
+                });
+        };
+        function DialogController($scope, $mdDialog) {
+            $scope.hide = function () {
+                $mdDialog.hide();
+            };
+
+            $scope.cancel = function () {
+                $mdDialog.cancel();
+            };
+
+            $scope.answer = function (answer) {
+                $mdDialog.hide(answer);
+            };
+        }
+        $scope.showAlert = function (ev) {
+            // Appending dialog to document.body to cover sidenav in docs app
+            // Modal dialogs should fully cover application
+            // to prevent interaction outside of dialog
+            $mdDialog.show(
+                $mdDialog.alert()
+                    .parent(angular.element(document.querySelector('#popupContainer')))
+                    .clickOutsideToClose(true)
+                    .title('Registration Successful')
+                    .textContent('Congratulations and Welcome to Shopping.')
+                    .ariaLabel('Alert Dialog Registration')
+                    .ok('Wow. Thanks')
+            );
+        };
+    }).config(function ($mdThemingProvider) {
+        $mdThemingProvider.theme('dark-grey').backgroundPalette('grey').dark();
+        $mdThemingProvider.theme('dark-orange').backgroundPalette('orange').dark();
+        $mdThemingProvider.theme('dark-purple').backgroundPalette('deep-purple').dark();
+        $mdThemingProvider.theme('dark-blue').backgroundPalette('blue').dark();
+    });
+</script>
+
+<script type="text/ng-template" id="Users.html">
+    <md-toolbar class="md-accent">
+        <div class="md-toolbar-tools">
+            <h2>Sign in or Register - Under Construction</h2>
+            <span flex></span>
+            <md-button class="md-icon-button test-tooltip" aria-label="Refresh" ng-click="GetUserType()">
+                <md-tooltip md-direction="left">Welcome</md-tooltip>
+                <i class="fa fa-user-circle-o"></i>
+            </md-button>
+
+        </div>
+    </md-toolbar>
+    <section layout-gt-sm="row" layout="row" layout-xs="column" layout-align="center center" layout-wrap>
+        <md-content layout-padding flex="30">
+            <form ng-submit="SignIn(signin)" name="signin" novalidate>
+                <h1 class="md-display-3">Sign in</h1>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>User name</label>
+                    <input name="uname" ng-model="user.name" md-maxlength="20" required />
+                    <md-tooltip>Other users will know you by the Username!</md-tooltip>
+                    <div ng-show="signin.uname.$valid" class="hint">Username is required to get into your account!</div>
+                    <div ng-messages="signin.uname.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">Without username we can't sign you in.</div>
+                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                    </div>
+                </md-input-container>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Password</label>
+                    <input name="password1" ng-model="user.password1" md-maxlength="50" required type="password">
+                    <md-tooltip md-delay="200">Provide a password to get into your account!</md-tooltip>
+                    <div ng-messages="signin.password1.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">Please enter password to get access to your account!</div>
+                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                    </div>
+                </md-input-container>
+                <md-button class="md-raised" type="submit">
+                    Sign in<md-tooltip md-delay="200">Sign in now</md-tooltip>
+                </md-button>
+                <md-button class="md-raised md-warn" ng-click="showTabDialog($event)">
+                    Can't access your account?<md-tooltip md-delay="200">Forgot anything?</md-tooltip>
+                </md-button>
+            </form>
+        </md-content>
+        <md-content layout-padding flex="40">
+            <form ng-submit="RegisterUser(register)" name="register" novalidate>
+                <h1 class="md-display-3">Register</h1>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Email</label>
+                    <input name="uemail" ng-model="user.email" type="email" ng-blur="CheckEmail(register)" ng-pattern="/^.+@@.+\..+$/" md-maxlength="100" required>
+                    <div ng-show="register.uemail.$valid" class="hint">We're gonna contact you by <b>{{user.email}}</b></div>
+                    <md-tooltip>How can we reach you?</md-tooltip>
+                    <div ng-messages="register.uemail.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">We need your email address.</div>
+                        <div ng-message="pattern" class="my-message">That doesn't look like a valid email.</div>
+                        <div ng-message="maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                        <div ng-message="exists" class="my-message">Email id already exists!</div>
+                    </div>
+                </md-input-container>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Date of birth</label>
+                    <md-datepicker name="birth" ng-model="user.birthdate" md-current-view="year" md-max-date="maxDate" required></md-datepicker>
+                    <div ng-show="register.birth.$valid" class="hint">You cut the cake on <b>{{user.birthdate}}</b></div>
+                    <md-tooltip>Tell us your birthday! Don't worry we aren't gonna share it with anyone</md-tooltip>
+                    <div ng-messages="register.birth.$error" role="alert">
+                        <div ng-message="required" class="my-message">We need your date of birth!</div>
+                        <div ng-message="maxdate" class="my-message">We don't allow users from future!</div>
+                        <div ng-message="mindate" class="my-message">We don't allow users from the past!</div>
+                        <div ng-message="valid" class="my-message">That's not a date. Please click on calender icon to select date</div>
+                    </div>
+                </md-input-container>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>User name</label>
+                    <input name="uname" ng-model="user.name" ng-blur="CheckUsername(register)" md-maxlength="20" required />
+                    <md-tooltip>Other users will know you by the Username!</md-tooltip>
+                    <div ng-show="register.uname.$valid" class="hint">Other users're gonna know you by <b>{{user.name}}</b></div>
+                    <div ng-messages="register.uname.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">Other users need to know you by username!</div>
+                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                        <div ng-message="exists" class="my-message">Username already exists!</div>
+                    </div>
+                </md-input-container>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Password</label>
+                    <input name="password1" ng-model="user.password1" md-maxlength="50" required type="password">
+                    <md-tooltip md-delay="200">Secure your account by providing a password!</md-tooltip>
+                    <div ng-messages="register.password1.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">Please enter password to secure your account!</div>
+                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                    </div>
+                </md-input-container>
+                <md-input-container class="md-block" flex-gt-sm>
+                    <label>Confirm password</label>
+                    <input name="password2" ng-model="user.password2" required type="password" md-maxlength="50" />
+                    <md-tooltip md-delay="200">Repeat the password again!</md-tooltip>
+                    <div class="hint" role="alert" style="color:rgb(221,44,0);" ng-if="user.password2 !== user.password1 && user.password1 && user.password2">Both the password should match</div>
+                    <div ng-messages="register.password2.$error" role="alert" multiple>
+                        <div ng-message="required" class="my-message">You must enter the password</div>
+                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                    </div>
+                </md-input-container>
+                <md-button class="md-raised md-primary" type="submit">
+                    Register<md-tooltip md-delay="200">Register now</md-tooltip>
+                </md-button>
+            </form>
+        </md-content>
+    </section>
+</script>
+<script type="text/ng-template" id="temp.forgot.html">
+    <md-dialog aria-label="Can't access your account?">
+        <md-toolbar>
+            <div class="md-toolbar-tools">
+                <h2>Can't access your account?</h2>
+                <span flex></span>
+                <md-button class="md-icon-button" ng-click="cancel()">
+                    <md-icon aria-label="Close dialog"><i class="fa fa-times" aria-hidden="true"></i></md-icon>
+                </md-button>
+            </div>
+        </md-toolbar>
+        <md-dialog-content style="max-width:800px;max-height:810px; ">
+            <md-tabs md-dynamic-height md-border-bottom>
+                <md-tab label="Password">
+                    <md-content class="md-padding">
+                        <form name="forgotPassword" novalidate>
+                            <h1 class="md-display-2">Forgot Password?</h1>
+                            <p>Please enter email and your Username to get reset your password</p>
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Email</label>
+                                <input name="uemail" ng-model="user.email" type="email" ng-pattern="/^.+@@.+\..+$/" md-maxlength="100" required>
+                                <md-tooltip>Please provide us your registered email</md-tooltip>
+                                <div ng-messages="forgotPassword.uemail.$error" role="alert" multiple>
+                                    <div ng-message="required" class="my-message">We need your email address.</div>
+                                    <div ng-message="pattern" class="my-message">That doesn't look like a valid email.</div>
+                                    <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>User name</label>
+                                <input name="uName" ng-model="user.name" md-maxlength="20" required />
+                                <md-tooltip>Please provide us your username</md-tooltip>
+                                <div ng-messages="forgotPassword.uName.$error" role="alert" multiple>
+                                    <div ng-message="required" class="my-message">We require username to find out your account!</div>
+                                    <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                                </div>
+                            </md-input-container>
+                            <md-button class="md-raised md-primary" type="submit">
+                                Reset password<md-tooltip md-delay="200">Reset password</md-tooltip>
+                            </md-button>
+                        </form>
+                    </md-content>
+                </md-tab>
+                <md-tab label="Username">
+                    <md-content class="md-padding">
+                        <form name="forgotUsername" novalidate>
+                            <h1 class="md-display-2">Forgot Username?</h1>
+                            <p>Please enter email and password to get your user name</p>
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Email</label>
+                                <input name="uemail" ng-model="user.email" type="email" ng-pattern="/^.+@@.+\..+$/" md-maxlength="100" required>
+                                <md-tooltip>Please provide us your registered email</md-tooltip>
+                                <div ng-messages="forgotUsername.uemail.$error" role="alert" multiple>
+                                    <div ng-message="required" class="my-message">We need your email address.</div>
+                                    <div ng-message="pattern" class="my-message">That doesn't look like a valid email.</div>
+                                    <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                                </div>
+                            </md-input-container>
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Enter password</label>
+                                <input name="password1" ng-model="user.password1" required type="password" md-maxlength="50" />
+                                <md-tooltip>Please provide us your correct password</md-tooltip>
+                                <div ng-messages="forgotUsername.password1.$error" role="alert" multiple>
+                                    <div ng-message="required" class="my-message">You must enter the password</div>
+                                    <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                                </div>
+                            </md-input-container>
+                            <md-button class="md-raised md-primary" type="submit" ng-click="showAlert($event)">
+                                Show Username<md-tooltip md-delay="200">Show Username</md-tooltip>
+                            </md-button>
+                        </form>
+                    </md-content>
+                </md-tab>
+                <md-tab label="Both">
+                    <form name="forgot" novalidate>
+                        <md-content class="md-padding">
+                            <h1 class="md-display-2">Forgot both Username and Password?</h1>
+                            <p>Please enter your birthdate and email to continue</p>
+                            <div layout-gt-sm="row">
+                                <md-input-container class="md-block" flex-gt-sm>
+                                    <label>Date of birth</label>
+                                    <md-datepicker name="birth" ng-model="user.birthdate" md-current-view="year" md-max-date="maxDate" required></md-datepicker>
+                                    <div ng-show="register.birth.$valid" class="hint">You cut the cake on <b>{{user.birthdate}}</b></div>
+                                    <md-tooltip>Tell us your birthday!</md-tooltip>
+                                    <div ng-messages="forgot.birth.$error" role="alert">
+                                        <div ng-message="required" class="my-message">We need your date of birth!</div>
+                                        <div ng-message="valid" class="my-message">That's not a date. Please click on calender icon to select date</div>
+                                    </div>
+                                </md-input-container>
+                                <md-input-container class="md-block" flex-gt-sm>
+                                    <label>Email</label>
+                                    <input name="uemail" ng-model="user.email" type="email" ng-pattern="/^.+@@.+\..+$/" md-maxlength="100" required>
+                                    <md-tooltip>Please provide us your registered email</md-tooltip>
+                                    <div ng-messages="forgot.uemail.$error" role="alert" multiple>
+                                        <div ng-message="required" class="my-message">We need your email address.</div>
+                                        <div ng-message="pattern" class="my-message">That doesn't look like a valid email.</div>
+                                        <div ng-message="md-maxlength" class="my-message">Don't use the long version silly...we don't need to be that specific...</div>
+                                    </div>
+                                </md-input-container>
+                            </div>
+                            <md-button class="md-raised md-primary" type="submit">
+                                Show Username<md-tooltip md-delay="200">Show Username and Reset password</md-tooltip>
+                            </md-button>
+                        </md-content>
+                    </form>
+                </md-tab>
+            </md-tabs>
+        </md-dialog-content>
+        <md-dialog-actions layout="row">
+            <span flex>How is this feature?</span>
+            <md-button ng-click="answer('bad')">
+                <md-tooltip>Bad</md-tooltip>
+                <i class="fa fa-thumbs-down"></i>
+            </md-button>
+            <md-button ng-click="answer('confused')">
+                <md-tooltip>Confused</md-tooltip>
+                <i class="fa fa-meh-o"></i>
+            </md-button>
+            <md-button ng-click="answer('useful')" style="margin-right:20px;">
+                <md-tooltip>Useful</md-tooltip>
+                <i class="fa fa-thumbs-up"></i>
+            </md-button>
+        </md-dialog-actions>
+    </md-dialog>
+</script>
+<script type="text/ng-template" id="Cart.html">
+    <md-toolbar class="md-accent">
+        <div class="md-toolbar-tools">
+            <h2>Cart <span ng-if="UserKey">- Number of Books: {{booksInCart.length}}</span><span ng-if="!UserKey">- Please sign in to see your cart</span></h2>
+            <span flex></span>
+            <md-button class="md-icon-button test-tooltip" aria-label="Refresh" ng-click="GetBooksInCart()">
+                <md-tooltip md-direction="left">Refresh</md-tooltip>
+                <i class="fa fa-refresh"></i>
+            </md-button>
+
+        </div>
+    </md-toolbar>
+    <section layout-gt-sm="row" layout="row" layout-xs="column" layout-align="center center" layout-wrap>
+        <md-card md-theme="dark-purple" md-theme-watch ng-repeat="x in booksInCart">
+            <md-card-title>
+                <md-card-title-text>
+                    <span class="md-headline">{{x.name}}</span>
+                    <span class="md-subhead">{{x.author}} - {{x.pages}} pages</span>
+                    <span class="md-subhead">{{x.description}}</span>
+                    <span class="md-subhead" ng-if="x.quantity > 0">${{x.price}} X quantity: {{x.quantity}} = ${{x.price * x.quantity}}</span>
+                    <span class="md-subhead" ng-if="x.quantity === 0">${{x.price}} - <b>SOLD OUT</b></span>
+                </md-card-title-text>
+                <md-card-title-media>
+                    <div draggable="true" style="align-self:center" class="fa fa-book fa-5x"></div>
+                </md-card-title-media>
+            </md-card-title>
+            <md-card-actions layout="row" layout-align="end center">
+                <md-button ng-click="BuyBooks(x.book_key, x.quantity, x.name, x.author)">
+                    Buy Books
+                    <md-tooltip style="color:black" md-direction="top">Buy Now</md-tooltip>
+                </md-button>
+                <md-button ng-click="DeleteFromCart(x.book_key)">
+                    Delete
+                    <md-tooltip style="color:black" md-direction="top">Delete</md-tooltip>
+                </md-button>
+            </md-card-actions>
+        </md-card>
+
+    </section>
+</script>
+<script type="text/ng-template" id="Items.html">
+    <md-toolbar class="md-accent">
+        <div class="md-toolbar-tools">
+
+            <h2>Items - Number of books: {{books.length}}</h2>
+            <span flex></span>
+            <md-button class="md-icon-button test-tooltip" aria-label="Refresh" ng-click="GetBooks()">
+                <md-tooltip md-direction="left">Refresh</md-tooltip>
+                <i class="fa fa-refresh"></i>
+            </md-button>
+
+        </div>
+    </md-toolbar>
+    <section layout-gt-sm="row" layout="row" layout-xs="column" layout-align="center center" layout-wrap>
+        <md-card md-theme="dark-orange" md-theme-watch ng-repeat="x in books">
+            <md-card-title>
+                <md-card-title-text>
+                    <span class="md-headline">{{x.name}}</span>
+                    <span class="md-subhead">{{x.author}} - {{x.pages}} pages</span>
+                    <span class="md-subhead">{{x.description}}</span>
+                    <span class="md-subhead" ng-if="x.quantity > 0">${{x.price}} - quantity: {{x.quantity}}</span>
+                    <span class="md-subhead" ng-if="x.quantity <= 0">${{x.price}} - <b>SOLD OUT</b></span>
+                </md-card-title-text>
+            </md-card-title>
+            <md-card-content layout="row" layout-align="space-between">
+                <div draggable="true" style="align-self:center" class="fa fa-book fa-5x"></div>
+                <md-card-actions layout="column">
+                    <md-button class="md-icon-button" aria-label="Favorite">
+                        <i class="fa fa-heart-o"></i>
+                        <md-tooltip style="color:black" md-direction="right">Add to wish list</md-tooltip>
+                    </md-button>
+                    <md-button class="md-icon-button" aria-label="Settings" ng-disabled="!UserKey || x.quantity <= 0" ng-click="AddToCart(x.book_key)">
+                        <i class="fa fa-cart-plus"></i>
+                        <md-tooltip style="color:black" md-direction="right">Add to cart</md-tooltip>
+                    </md-button>
+                    <md-button class="md-icon-button" aria-label="Share">
+                        <i class="fa fa-share-alt"></i>
+                        <md-tooltip style="color:black" md-direction="right">Share</md-tooltip>
+                    </md-button>
+                </md-card-actions>
+            </md-card-content>
+        </md-card>
+
+    </section>
+</script>
+<script type="text/ng-template" id="Dashboard.html">
+    <md-toolbar class="md-accent">
+        <div class="md-toolbar-tools">
+
+            <h2>Dashboard - Under Construction</h2>
+            <span flex></span>
+            <md-button class="md-icon-button test-tooltip" aria-label="Refresh">
+                <md-tooltip md-direction="left">Refresh</md-tooltip>
+                <i class="fa fa-refresh"></i>
+            </md-button>
+
+        </div>
+    </md-toolbar>
+    @*<md-toolbar class="md-accent">
+            <div class="md-toolbar-tools">
+                <h2>Users - Under Construction</h2>
+                <span flex></span>
+                <md-button class="md-icon-button test-tooltip" aria-label="Refresh">
+                    <md-tooltip md-direction="left">Refresh</md-tooltip>
+                    <i class="fa fa-refresh"></i>
+                </md-button>
+            </div>
+        </md-toolbar>
+        @*<span>Welcome {{UserSigned}}!</span>*@
+</script>
+
